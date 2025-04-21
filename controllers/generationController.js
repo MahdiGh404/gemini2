@@ -12,7 +12,7 @@ class GenerationController {
      */
     static async generateContent(req, res, next) {
         try {
-            const {prompt} = req.body;
+            const {prompt, history} = req.body;
             const imageFile = req.file; // Provided by multer middleware
 
             // --- Input Validation ---
@@ -30,11 +30,24 @@ class GenerationController {
                 console.log("No image file provided.");
             }
 
+            // Parse history if provided
+            let parsedHistory = [];
+            if (history && typeof history === 'string') {
+                try {
+                    parsedHistory = JSON.parse(history);
+                } catch (e) {
+                    console.warn('Could not parse history JSON:', e.message);
+                }
+            } else if (Array.isArray(history)) {
+                parsedHistory = history;
+            }
+
             // --- Call Model Layer ---
             const modelResponse = await GeminiModel.generateContent(
                 prompt.trim(), // Send trimmed prompt
                 imageFile ? imageFile.buffer : null,
-                imageFile ? imageFile.mimetype : null
+                imageFile ? imageFile.mimetype : null,
+                parsedHistory // Pass the history
             );
 
             // --- Process and Send Response ---
@@ -48,8 +61,15 @@ class GenerationController {
             // Handle different response types from the model
             switch (modelResponse.type) {
                 case 'image':
+                    res.status(200).json({
+                        imageUrl: modelResponse.data.imageUrl,
+                        text: modelResponse.data.text || null // Include text if available
+                    });
+                    break;
                 case 'text':
-                    res.status(200).json(modelResponse.data);
+                    res.status(200).json({
+                        text: modelResponse.data.text
+                    });
                     break;
                 case 'empty':
                     // Return a 200 OK but indicate no content was generated

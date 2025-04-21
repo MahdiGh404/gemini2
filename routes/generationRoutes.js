@@ -14,9 +14,5 @@ router.post(
     GenerationController.generateContent // Controller logic
 );
 
-// GET /api/health
-// Basic health check endpoint
-router.get('/health', GenerationController.healthCheck);
-
 
 module.exports = router;

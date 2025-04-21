@@ -18,11 +18,6 @@ const safetySettings = [
     {category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
     {category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
     {category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
-    // Consider BLOCK_NONE for specific use cases carefully
-    // { category: HarmCategory.HARM_CATEGORY_HARASSMENT,       threshold: HarmBlockThreshold.BLOCK_NONE },
-    // { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,      threshold: HarmBlockThreshold.BLOCK_NONE },
-    // { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    // { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
 ];
 
 class GeminiModel {
@@ -31,33 +26,32 @@ class GeminiModel {
      * @param {string} prompt - The user's text prompt.
      * @param {Buffer | null} imageBuffer - Optional image buffer.
      * @param {string | null} imageMimeType - Optional image mime type (e.g., 'image/png').
+     * @param {Array} history - Optional conversation history.
      * @returns {Promise<object>} - The processed response containing either text or image data.
      * @throws {ApiError} - Throws custom API errors for upstream issues.
      */
-    static async generateContent(prompt, imageBuffer = null, imageMimeType = null) {
+    static async generateContent(prompt, imageBuffer = null, imageMimeType = null, history = []) {
         try {
             console.log(`Using Gemini Model: ${config.geminiModelName}`);
-            const model = genAI.getGenerativeModel({
-                model: config.geminiModelName,
-                safetySettings: safetySettings,
-                // Generation Config (Optional): Control output parameters
-                // generationConfig: {
-                //     temperature: 0.9,
-                //     topK: 1,
-                //     topP: 1,
-                //     maxOutputTokens: 2048,
-                // }
-            });
 
-            const requestParts = [{text: prompt}];
+            // Format history to match Google AI SDK requirements
+            const formattedHistory = this.formatHistory(history);
 
+            // Prepare the current message parts
+            const messageParts = [];
+
+            // Add text prompt
+            messageParts.push({text: prompt});
+
+            // Add image if provided
             if (imageBuffer && imageMimeType) {
                 console.log(`Adding image to request (${imageMimeType})`);
-                // Validate MIME type slightly
+                // Validate MIME type
                 if (!imageMimeType.startsWith('image/')) {
                     throw new ApiError(400, 'Invalid image MIME type provided.');
                 }
-                requestParts.push({
+
+                messageParts.push({
                     inlineData: {
                         data: imageBuffer.toString('base64'),
                         mimeType: imageMimeType,
@@ -67,9 +61,38 @@ class GeminiModel {
                 console.log('No image provided, sending text-only request.');
             }
 
+            // Add current message to history
+            if (formattedHistory.length > 0) {
+                formattedHistory.push({
+                    role: "user",
+                    parts: messageParts
+                });
+            }
+
             console.log('Sending request to Gemini API...');
-            // The SDK handles constructing the full request object
-            const result = await model.generateContent(requestParts);
+
+            // Create request with or without history
+            let result;
+            const model = genAI.getGenerativeModel({
+                model: config.geminiModelName,
+                safetySettings: safetySettings,
+                generationConfig: {
+                    temperature: 1,
+                    topP: 0.95,
+                    topK: 40,
+                    responseModalities: ["Text", "Image"],
+                }
+            });
+
+            if (formattedHistory.length > 0) {
+                // Use history-based request
+                result = await model.generateContent({
+                    contents: formattedHistory,
+                });
+            } else {
+                // Use simple request
+                result = await model.generateContent(messageParts);
+            }
 
             console.log('Received response from Gemini API.');
             const response = result.response; // Access the response object directly
@@ -105,6 +128,57 @@ class GeminiModel {
                 {sdkError: error.message} // Include SDK's error message for details
             );
         }
+    }
+
+    /**
+     * Format history for Gemini API
+     * @param {Array} history - Array of history items
+     * @returns {Array} - Formatted history for Gemini API
+     */
+    static formatHistory(history) {
+        if (!history || !Array.isArray(history) || history.length === 0) {
+            return [];
+        }
+
+        return history.map(item => {
+            // Ensure item has required properties
+            if (!item.role || !item.parts || !Array.isArray(item.parts)) {
+                return null;
+            }
+
+            return {
+                role: item.role,
+                parts: item.parts.map(part => {
+                    if (part.text) {
+                        return { text: part.text };
+                    }
+                    if (part.image && item.role === "user") {
+                        // Handle base64 image data
+                        if (typeof part.image === 'string' && part.image.includes('base64')) {
+                            const imgParts = part.image.split(',');
+                            if (imgParts.length > 1) {
+                                return {
+                                    inlineData: {
+                                        data: imgParts[1],
+                                        mimeType: part.image.includes('image/png') ? 'image/png' : 'image/jpeg',
+                                    }
+                                };
+                            }
+                        }
+                        // Handle buffer image data
+                        else if (part.image.buffer && part.image.mimeType) {
+                            return {
+                                inlineData: {
+                                    data: part.image.buffer.toString('base64'),
+                                    mimeType: part.image.mimeType
+                                }
+                            };
+                        }
+                    }
+                    return null;
+                }).filter(Boolean) // Remove null parts
+            };
+        }).filter(Boolean); // Remove null items
     }
 
     /**
@@ -172,36 +246,40 @@ class GeminiModel {
                 };
             }
 
-
             if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
                 console.warn('No content parts found in the candidate.');
                 return {type: 'empty', data: {text: 'The model returned a candidate but no content parts.'}};
             }
 
             const parts = candidate.content.parts;
+            let textContent = null;
+            let imageData = null;
+            let imageMimeType = null;
 
-            // --- Prioritize Image Data ---
-            // The SDK typically puts generated images in 'inlineData'
-            const imagePart = parts.find(part => part.inlineData && part.inlineData.mimeType.startsWith('image/'));
-            if (imagePart) {
-                console.log(`Image found in response (mimeType: ${imagePart.inlineData.mimeType})`);
+            // Process all parts to extract both text and image
+            for (const part of parts) {
+                // Check for image data
+                if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                    console.log(`Image found in response (mimeType: ${part.inlineData.mimeType})`);
+                    imageData = part.inlineData.data;
+                    imageMimeType = part.inlineData.mimeType;
+                }
+                // Check for text data
+                else if (typeof part.text === 'string') {
+                    textContent = (textContent || '') + part.text;
+                }
+            }
+
+            // Return based on what was found
+            if (imageData) {
                 return {
                     type: 'image',
                     data: {
-                        imageUrl: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`
+                        imageUrl: `data:${imageMimeType};base64,${imageData}`,
+                        text: textContent // Include text description if available
                     }
                 };
-            }
-
-            // --- Fallback to Text Data ---
-            // Combine text from all parts that contain text
-            const textContent = parts
-                .filter(part => typeof part.text === 'string')
-                .map(part => part.text)
-                .join('\n'); // Join multiple text parts with newline
-
-            if (textContent) {
-                console.log('Text content found in response.');
+            } else if (textContent) {
                 return {
                     type: 'text',
                     data: {
@@ -210,7 +288,7 @@ class GeminiModel {
                 };
             }
 
-            // --- Handle Unexpected/Empty Parts ---
+            // Handle empty response
             console.warn('Response received, but no recognizable text or image data found in parts.');
             return {
                 type: 'empty',
