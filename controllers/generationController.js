@@ -12,7 +12,7 @@ class GenerationController {
      */
     static async generateContent(req, res, next) {
         try {
-            const {prompt, history} = req.body;
+            const {prompt} = req.body;
             const imageFile = req.file; // Provided by multer middleware
 
             // --- Input Validation ---
@@ -30,7 +30,6 @@ class GenerationController {
                 console.log("No image file provided.");
             }
 
-            // Parse history if provided
 
 
             // --- Call Model Layer ---
