@@ -31,24 +31,13 @@ class GenerationController {
             }
 
             // Parse history if provided
-            let parsedHistory = [];
-            if (history && typeof history === 'string') {
-                try {
-                    parsedHistory = JSON.parse(history);
-                } catch (e) {
-                    console.warn('Could not parse history JSON:', e.message);
-                }
-            } else if (Array.isArray(history)) {
-                parsedHistory = history;
-            }
+
 
             // --- Call Model Layer ---
             const modelResponse = await GeminiModel.generateContent(
                 prompt.trim(), // Send trimmed prompt
                 imageFile ? imageFile.buffer : null,
-                imageFile ? imageFile.mimetype : null,
-                parsedHistory // Pass the history
-            );
+                imageFile ? imageFile.mimetype : null);
 
             // --- Process and Send Response ---
             console.log(`Model response type: ${modelResponse.type}`);
@@ -100,12 +89,7 @@ class GenerationController {
         }
     }
 
-    /**
-     * Basic health check endpoint.
-     */
-    static healthCheck(req, res) {
-        res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
-    }
+
 }
 
 module.exports = GenerationController;

@@ -30,12 +30,10 @@ class GeminiModel {
      * @returns {Promise<object>} - The processed response containing either text or image data.
      * @throws {ApiError} - Throws custom API errors for upstream issues.
      */
-    static async generateContent(prompt, imageBuffer = null, imageMimeType = null, history = []) {
+    static async generateContent(prompt, imageBuffer = null, imageMimeType = null) {
         try {
             console.log(`Using Gemini Model: ${config.geminiModelName}`);
 
-            // Format history to match Google AI SDK requirements
-            const formattedHistory = this.formatHistory(history);
 
             // Prepare the current message parts
             const messageParts = [];
@@ -61,13 +59,7 @@ class GeminiModel {
                 console.log('No image provided, sending text-only request.');
             }
 
-            // Add current message to history
-            if (formattedHistory.length > 0) {
-                formattedHistory.push({
-                    role: "user",
-                    parts: messageParts
-                });
-            }
+
 
             console.log('Sending request to Gemini API...');
 
@@ -84,15 +76,10 @@ class GeminiModel {
                 }
             });
 
-            if (formattedHistory.length > 0) {
-                // Use history-based request
-                result = await model.generateContent({
-                    contents: formattedHistory,
-                });
-            } else {
-                // Use simple request
-                result = await model.generateContent(messageParts);
-            }
+
+            // Use simple request
+            result = await model.generateContent(messageParts);
+
 
             console.log('Received response from Gemini API.');
             const response = result.response; // Access the response object directly
@@ -150,7 +137,7 @@ class GeminiModel {
                 role: item.role,
                 parts: item.parts.map(part => {
                     if (part.text) {
-                        return { text: part.text };
+                        return {text: part.text};
                     }
                     if (part.image && item.role === "user") {
                         // Handle base64 image data
