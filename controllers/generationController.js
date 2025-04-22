@@ -12,7 +12,8 @@ class GenerationController {
      */
     static async generateContent(req, res, next) {
         try {
-            const {prompt} = req.body;
+            let final_prompt;
+            let {prompt} = req.body;
             const imageFile = req.file; // Provided by multer middleware
 
             // --- Input Validation ---
@@ -21,9 +22,46 @@ class GenerationController {
                 throw new ApiError(400, 'Text prompt (prompt) is required and cannot be empty.');
             }
 
+
+            switch (prompt) {
+                case "1":
+                    //Add Sunglasses
+                    final_prompt = "Add realistic sunglasses to the person's face. Strictly preserve the original facial identity, features, and high details of the subject beneath the glasses."
+                    break;
+                case "2":
+                    //Prescription Glasses
+                    final_prompt = "Add realistic prescription glasses to the person's face. Ensure the original facial identity and high details visible below the glasses are strictly preserved."
+                    break;
+                case "3":
+                    //Add Hat
+                    final_prompt = " Add a realistic beanie to the person's head. Ensure the original facial identity and high details visible below the hat are strictly preserved."
+                    break;
+                case "4":
+                    //Change Expression to Angry Frown
+                    final_prompt = "Change the person's expression to an angry frown. Strictly preserve the underlying facial identity and all other features with high detail, only altering the expression."
+                    break;
+                case "5":
+                    //Left Three-Quarter View
+                    final_prompt = "Change the person's pose to a left three-quarter view, **strongly emphasizing the head turn towards their left**. Accurately maintain the original facial identity and characteristics from this new angle, preserving high details."
+                    break;
+                case "6":
+                    //Right Three-Quarter View
+                    final_prompt = "Change the person's pose to a right three-quarter view, **strongly emphasizing the head turn towards their right**. Accurately maintain the original facial identity and characteristics from this new angle, preserving high details."
+                    break;
+                case "7":
+                    //Left Profile View
+                    final_prompt = "Change the person's pose to a left profile view, **turning their head decisively towards their left side**. Accurately maintain the original facial identity and characteristics as seen from the side, preserving high details."
+                    break;
+                case "8":
+                    //Right Profile View
+                    final_prompt = "Change the person's pose to a right profile view, **turning their head decisively towards their right side**. Accurately maintain the original facial identity and characteristics as seen from the side, preserving high details."
+                    break;
+
+            }
+
             // Log request details (avoid logging file buffer in production for large files)
             console.log('--- New Generation Request ---');
-            console.log(`Prompt: "${prompt}"`);
+            console.log(`Prompt: "${prompt} Final Prompt: "${final_prompt}"`);
             if (imageFile) {
                 console.log(`Image received: ${imageFile.originalname} (${imageFile.mimetype}, ${imageFile.size} bytes)`);
             } else {
@@ -31,10 +69,9 @@ class GenerationController {
             }
 
 
-
             // --- Call Model Layer ---
             const modelResponse = await GeminiModel.generateContent(
-                prompt.trim(), // Send trimmed prompt
+                final_prompt.trim(), // Send trimmed prompt
                 imageFile ? imageFile.buffer : null,
                 imageFile ? imageFile.mimetype : null);
 

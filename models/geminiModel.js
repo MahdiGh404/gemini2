@@ -118,57 +118,6 @@ class GeminiModel {
     }
 
     /**
-     * Format history for Gemini API
-     * @param {Array} history - Array of history items
-     * @returns {Array} - Formatted history for Gemini API
-     */
-    static formatHistory(history) {
-        if (!history || !Array.isArray(history) || history.length === 0) {
-            return [];
-        }
-
-        return history.map(item => {
-            // Ensure item has required properties
-            if (!item.role || !item.parts || !Array.isArray(item.parts)) {
-                return null;
-            }
-
-            return {
-                role: item.role,
-                parts: item.parts.map(part => {
-                    if (part.text) {
-                        return {text: part.text};
-                    }
-                    if (part.image && item.role === "user") {
-                        // Handle base64 image data
-                        if (typeof part.image === 'string' && part.image.includes('base64')) {
-                            const imgParts = part.image.split(',');
-                            if (imgParts.length > 1) {
-                                return {
-                                    inlineData: {
-                                        data: imgParts[1],
-                                        mimeType: part.image.includes('image/png') ? 'image/png' : 'image/jpeg',
-                                    }
-                                };
-                            }
-                        }
-                        // Handle buffer image data
-                        else if (part.image.buffer && part.image.mimeType) {
-                            return {
-                                inlineData: {
-                                    data: part.image.buffer.toString('base64'),
-                                    mimeType: part.image.mimeType
-                                }
-                            };
-                        }
-                    }
-                    return null;
-                }).filter(Boolean) // Remove null parts
-            };
-        }).filter(Boolean); // Remove null items
-    }
-
-    /**
      * Processes the response from the Gemini API SDK.
      * Extracts text or image data.
      * @param {object} apiResponse - The `response` object from the SDK's result.

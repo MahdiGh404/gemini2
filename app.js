@@ -73,7 +73,7 @@ app.get('/test-form', (req, res) => {
     <!DOCTYPE html>
     <html lang="fa" dir="rtl">
     <head>
-      <title>تست API تولید محتوای Gemini</title>
+      <title>تست API</title>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
@@ -107,22 +107,20 @@ app.get('/test-form', (req, res) => {
     </head>
     <body>
       <div class="container">
-        <h1>تست API تولید محتوای Gemini</h1>
+        <h1>تست API</h1>
 
         <div class="tabs main-tabs">
           <div class="tab active" data-tab="form">فرم تست</div>
-          <div class="tab" data-tab="examples">مثال‌ها</div>
-          <div class="tab" data-tab="help">راهنما</div>
         </div>
 
         <div class="tab-content active" id="form-tab">
           <form id="testForm" enctype="multipart/form-data">
             <div class="form-group">
-              <label for="prompt">متن درخواست (Prompt):</label>
-              <textarea id="prompt" name="prompt" rows="4" required placeholder="مثلاً: یک تصویر از گربه‌ای فضانورد روی ماه ایجاد کن"></textarea>
+              <label for="prompt">کلید</label>
+              <textarea id="prompt" name="prompt" rows="4" required placeholder="کلید را وارد کنید."></textarea>
             </div>
             <div class="form-group">
-              <label for="image">تصویر ورودی (اختیاری):</label>
+              <label for="image">تصویر ورودی:</label>
               <input type="file" id="image" name="image" accept="image/*">
             </div>
             <button type="submit" id="submitBtn">
@@ -139,78 +137,11 @@ app.get('/test-form', (req, res) => {
           </div>
         </div>
 
-        <div class="tab-content" id="examples-tab">
-          <h2>مثال‌های درخواست</h2>
-          <p>روی یک مثال کلیک کنید تا در فرم بالا بارگذاری شود.</p>
-          <div class="examples">
-            <div class="example" data-prompt="یک تصویر فوتورئالیستی از یک ساحل آرام در هنگام غروب آفتاب ایجاد کن">ایجاد تصویر ساحل غروب آفتاب</div>
-            <div class="example" data-prompt="Generate an image of a cute robot reading a book in a cozy library, cartoon style">ایجاد تصویر ربات کتابخوان (کارتونی)</div>
-            <div class="example" data-prompt="این تصویر را توصیف کن (یک تصویر آپلود کنید)">توصیف تصویر آپلود شده</div>
-            <div class="example" data-prompt="خلاصه‌ای از مفهوم هوش مصنوعی مولد ارائه بده">توضیح هوش مصنوعی مولد (متنی)</div>
-            <div class="example" data-prompt="Generate a logo for a coffee shop named 'The Cosmic Bean'">ایجاد لوگو برای کافه</div>
-          </div>
-        </div>
 
-         <div class="tab-content" id="help-tab">
-           <h2>راهنما</h2>
-           <p>این صفحه به شما امکان می‌دهد تا API تولید محتوای Gemini را مستقیماً از مرورگر خود آزمایش کنید.</p>
-           <ul>
-             <li><strong>متن درخواست (Prompt):</strong> دستورالعمل خود را برای مدل وارد کنید. برای تولید تصویر، به وضوح درخواست تصویر کنید (مثلاً "یک تصویر از ... ایجاد کن").</li>
-             <li><strong>تصویر ورودی:</strong> می‌توانید یک تصویر آپلود کنید تا مدل آن را همراه با متن درخواست شما پردازش کند (مثلاً برای پرسیدن سوال در مورد تصویر).</li>
-             <li><strong>ارسال درخواست:</strong> دکمه را فشار دهید تا درخواست به سرور Node.js شما ارسال شود، که سپس با API Gemini ارتباط برقرار می‌کند.</li>
-             <li><strong>نتیجه:</strong> پاسخ (چه تصویر باشد چه متن) در زیر فرم نمایش داده می‌شود. همچنین پاسخ خام JSON نیز برای بررسی دقیق‌تر نشان داده می‌شود.</li>
-            <li><strong>خطاها:</strong> در صورت بروز خطا (مانند کلید API نامعتبر، درخواست نامناسب، یا مشکلات سرور)، پیام خطا نمایش داده خواهد شد.</li>
-           </ul>
-           <p><strong>نکته مهم:</strong> تولید تصویر ممکن است چند ثانیه طول بکشد.</p>
-         </div>
       </div>
 
       <script>
-        // --- Tab Management ---
-        function setupTabs(tabContainerSelector) {
-           const tabContainer = document.querySelector(tabContainerSelector);
-           if (!tabContainer) return;
-           const tabs = tabContainer.querySelectorAll(':scope > .tab'); // Direct children only
-           const tabContents = tabContainer.nextElementSibling.querySelectorAll(':scope > .tab-content'); // Assumes content follows tabs div
 
-           if (!tabs.length || !tabContents.length) return;
-
-            tabs.forEach(tab => {
-              tab.addEventListener('click', function() {
-                const tabId = this.getAttribute('data-tab');
-
-                // Deactivate all tabs and content within this specific container
-                tabs.forEach(t => t.classList.remove('active'));
-                const contentContainer = this.closest('.tabs').nextElementSibling; // Find the related content container
-                if(contentContainer){
-                    contentContainer.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                }
-
-
-                // Activate the clicked tab and its corresponding content
-                this.classList.add('active');
-                const activeContent = document.getElementById(tabId + '-tab');
-                 if (activeContent) {
-                     activeContent.classList.add('active');
-                 } else {
-                     console.warn('No content found for tab:', tabId);
-                 }
-              });
-            });
-        }
-
-        setupTabs('.main-tabs'); // Setup main tabs
-
-        // --- Example Loading ---
-        document.querySelectorAll('.example').forEach(example => {
-          example.addEventListener('click', function() {
-            const promptText = this.getAttribute('data-prompt');
-            document.getElementById('prompt').value = promptText;
-            // Switch back to the form tab
-            document.querySelector('.main-tabs .tab[data-tab="form"]').click();
-            window.scrollTo(0, 0); // Scroll to top
-          });
-        });
 
         // --- Form Submission ---
         const form = document.getElementById('testForm');
