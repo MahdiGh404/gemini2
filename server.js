@@ -8,7 +8,7 @@ const PORT = config.port;
 const server = app.listen(PORT, () => {
     console.log(`-------------------------------------------------------`);
     console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    console.log(`🔑 Google AI API Key Loaded: ${config.googleAiApiKey ? 'Yes' : 'NO (Critical Error!)'}`);
+    console.log(`🔑 Google AI API Key Loaded: ${config.googleAiApiKey1 ? 'Yes' : 'NO (Critical Error!)'}`);
     console.log(`🧠 Using Gemini Model: ${config.geminiModelName}`);
     console.log(`-------------------------------------------------------`);
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);

@@ -3,16 +3,32 @@ const {GoogleGenerativeAI, HarmCategory, HarmBlockThreshold} = require('@google/
 const config = require('../config/config');
 const {ApiError} = require('../utils/errorHandler');
 
-// Ensure API key is loaded
-if (!config.googleAiApiKey) {
-    throw new Error('FATAL ERROR: GOOGLE_AI_API_KEY environment variable is not set.');
+// Ensure BOTH API keys are loaded
+if (!config.googleAiApiKey1 || !config.googleAiApiKey2) {
+    throw new Error(
+        'FATAL ERROR: Both GOOGLE_AI_API_KEY1 and GOOGLE_AI_API_KEY2 environment variables must be set.'
+    );
 }
 
-// Initialize the Google AI Client
-const genAI = new GoogleGenerativeAI(config.googleAiApiKey);
+// --------------------------------------------------------
+// Round‑robin Google AI key management
+// --------------------------------------------------------
+const apiKeys = [config.googleAiApiKey1, config.googleAiApiKey2];
+let nextKeyIndex = 0; // Shared across calls in this process
+
+/**
+ * Return a GoogleGenerativeAI client using the next key in a round‑robin fashion.
+ * Having `nextKeyIndex` at module scope guarantees that every invocation of
+ * generateContent() gets a different key (1 → 2 → 1 → 2 ...).
+ */
+function getNextGenAI() {
+    const selectedKey = apiKeys[nextKeyIndex];
+    nextKeyIndex = (nextKeyIndex + 1) % apiKeys.length; // prepare for next call
+    return new GoogleGenerativeAI(selectedKey);
+}
 
 // Configure safety settings (adjust as needed)
-// Blocking NONE allows more content but increases risk. Be cautious.
+// Blocking MEDIUM_AND_ABOVE allows more content but increases risk. Be cautious.
 const safetySettings = [
     {category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
     {category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE},
@@ -34,6 +50,8 @@ class GeminiModel {
         try {
             console.log(`Using Gemini Model: ${config.geminiModelName}`);
 
+            // Get GoogleGenerativeAI client with the next key in sequence
+            const genAI = getNextGenAI();
 
             // Prepare the current message parts
             const messageParts = [];
@@ -59,12 +77,9 @@ class GeminiModel {
                 console.log('No image provided, sending text-only request.');
             }
 
-
-
             console.log('Sending request to Gemini API...');
 
             // Create request with or without history
-            let result;
             const model = genAI.getGenerativeModel({
                 model: config.geminiModelName,
                 safetySettings: safetySettings,
@@ -72,21 +87,18 @@ class GeminiModel {
                     temperature: 1,
                     topP: 0.95,
                     topK: 40,
-                    responseModalities: ["Text", "Image"],
-                }
+                    responseModalities: ['Text', 'Image'],
+                },
             });
 
-
             // Use simple request
-            result = await model.generateContent(messageParts);
-
+            const result = await model.generateContent(messageParts);
 
             console.log('Received response from Gemini API.');
             const response = result.response; // Access the response object directly
 
             // Process the response
             return GeminiModel.processResponse(response);
-
         } catch (error) {
             console.error('Error calling Gemini API:', error);
 
@@ -139,8 +151,8 @@ class GeminiModel {
                     type: 'error',
                     data: {
                         error: `Content generation blocked due to: ${apiResponse.promptFeedback.blockReason}`,
-                        details: {safetyRatings: apiResponse.candidates?.[0]?.safetyRatings}
-                    }
+                        details: {safetyRatings: apiResponse.candidates?.[0]?.safetyRatings},
+                    },
                 };
             }
 
@@ -151,7 +163,7 @@ class GeminiModel {
                 if (finishReason && finishReason !== 'STOP') {
                     return {
                         type: 'text',
-                        data: {text: `Generation stopped due to: ${finishReason}. No content available.`}
+                        data: {text: `Generation stopped due to: ${finishReason}. No content available.`},
                     };
                 }
                 return {type: 'empty', data: {text: 'The model did not return any content.'}};
@@ -168,8 +180,8 @@ class GeminiModel {
                         type: 'error',
                         data: {
                             error: 'Content generation stopped due to safety concerns.',
-                            details: {safetyRatings: candidate.safetyRatings}
-                        }
+                            details: {safetyRatings: candidate.safetyRatings},
+                        },
                     };
                 }
                 if (candidate.finishReason === 'RECITATION') {
@@ -178,7 +190,9 @@ class GeminiModel {
                 // Other reasons like MAX_TOKENS or unspecified
                 return {
                     type: 'text',
-                    data: {text: `Generation stopped unexpectedly (${candidate.finishReason}). Partial content might be missing.`}
+                    data: {
+                        text: `Generation stopped unexpectedly (${candidate.finishReason}). Partial content might be missing.`,
+                    },
                 };
             }
 
@@ -212,15 +226,17 @@ class GeminiModel {
                     type: 'image',
                     data: {
                         imageUrl: `data:${imageMimeType};base64,${imageData}`,
-                        text: textContent // Include text description if available
-                    }
+                        text: textContent, // Include text description if available
+                    },
                 };
-            } else if (textContent) {
+            }
+
+            if (textContent) {
                 return {
                     type: 'text',
                     data: {
-                        text: textContent
-                    }
+                        text: textContent,
+                    },
                 };
             }
 
@@ -228,9 +244,8 @@ class GeminiModel {
             console.warn('Response received, but no recognizable text or image data found in parts.');
             return {
                 type: 'empty',
-                data: {text: 'Model response did not contain usable text or image data.', rawParts: parts}
+                data: {text: 'Model response did not contain usable text or image data.', rawParts: parts},
             };
-
         } catch (error) {
             console.error('Error processing API response:', error);
             return {
@@ -238,8 +253,8 @@ class GeminiModel {
                 data: {
                     error: `Failed to process the API response: ${error.message}`,
                     // Avoid sending the raw response back to the client in production
-                    rawResponse: process.env.NODE_ENV === 'development' ? apiResponse : undefined
-                }
+                    rawResponse: process.env.NODE_ENV === 'development' ? apiResponse : undefined,
+                },
             };
         }
     }

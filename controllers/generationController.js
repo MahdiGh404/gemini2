@@ -16,6 +16,7 @@ class GenerationController {
             let {prompt} = req.body;
             const imageFile = req.file; // Provided by multer middleware
 
+
             // --- Input Validation ---
             if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
                 // Use ApiError for structured error handling
@@ -25,39 +26,39 @@ class GenerationController {
 
             switch (prompt) {
                 case "1":
-                    //Add Sunglasses
-                    final_prompt = "Add realistic sunglasses to the person's face. Strictly preserve the original facial identity, features, and high details of the subject beneath the glasses."
+                    // Add Sunglasses
+                    final_prompt = "Add photorealistic, high-quality sunglasses to the person's face. The sunglasses should look natural and fit perfectly on their face structure. CRITICAL: Maintain 100% of the subject's original facial identity, features, skin texture, and distinctive characteristics. The sunglasses should complement their appearance without altering any underlying facial structure or details.";
+                    break;
+                case "20":
+                    // Prescription Glasses
+                    final_prompt = "Add elegant, photorealistic prescription glasses that perfectly match the person's face shape and style. The glasses should have clear lenses allowing full visibility of the eyes. CRITICAL: Preserve 100% of the subject's original facial identity, features, skin texture, and distinctive characteristics. Maintain all facial details visible through and around the glasses with perfect clarity.";
+                    break;
+                case "30":
+                    // Add Hat
+                    final_prompt = "Add a stylish, realistic beanie hat to the person's head that fits naturally on their hair and head shape. CRITICAL: Ensure the original facial identity, expression, skin texture, and all facial features remain 100% unchanged and highly detailed. The hat should complement their appearance without altering any aspect of their face or identity.";
+                    break;
+                case "40":
+                    // Change Expression to Angry Frown
+                    final_prompt = "Modify ONLY the person's expression to show an angry frown, with furrowed brows and slightly downturned mouth. CRITICAL: Preserve with absolute precision their complete facial identity, structure, unique features, skin texture, eye color, and all other distinctive characteristics. Change nothing but the minimal features needed for the expression change.";
                     break;
                 case "2":
-                    //Prescription Glasses
-                    final_prompt = "Add realistic prescription glasses to the person's face. Ensure the original facial identity and high details visible below the glasses are strictly preserved."
+                    //Left Three-Quarter View
+                    final_prompt = "Generate a photorealistic image reorienting the person's face to a perfect left three-quarter view (approximately 45 degrees toward their left shoulder). The head rotation must be distinctive and unmistakable. CRITICAL REQUIREMENT: Maintain 100% accuracy in reconstructing their original facial identity, unique proportions, features, skin texture, and all defining characteristics from this new angle. Create a natural perspective shift that appears as if the original photograph was actually captured from this angle, with all facial features coherently repositioned while preserving their exact appearance.";
                     break;
                 case "3":
-                    //Add Hat
-                    final_prompt = " Add a realistic beanie to the person's head. Ensure the original facial identity and high details visible below the hat are strictly preserved."
+                    //Right Three-Quarter View
+                    final_prompt = "Generate a photorealistic image reorienting the person's face to a perfect right three-quarter view (approximately 45 degrees toward their right shoulder). The head rotation must be distinctive and unmistakable. CRITICAL REQUIREMENT: Maintain 100% accuracy in reconstructing their original facial identity, unique proportions, features, skin texture, and all defining characteristics from this new angle. Create a natural perspective shift that appears as if the original photograph was actually captured from this angle, with all facial features coherently repositioned while preserving their exact appearance.";
                     break;
                 case "4":
-                    //Change Expression to Angry Frown
-                    final_prompt = "Change the person's expression to an angry frown. Strictly preserve the underlying facial identity and all other features with high detail, only altering the expression."
+                    //Left Profile View
+                    final_prompt = "Generate a photorealistic image reorienting the person to a complete left profile view (90 degrees, with their left side facing the camera). The profile must be precise and definitive. CRITICAL REQUIREMENT: Maintain 100% accuracy in reconstructing their original facial identity, unique proportions, and all defining characteristics from this side perspective. Ensure realistic rendering of typically profile-visible features like the nose bridge, jawline, and ear, while preserving their exact facial structure. The result must appear as if the photograph was actually taken directly from their left side, with perfect lighting consistency and detail preservation.";
                     break;
                 case "5":
-                    //Left Three-Quarter View
-                    final_prompt = "Change the person's pose to a left three-quarter view, **strongly emphasizing the head turn towards their left**. Accurately maintain the original facial identity and characteristics from this new angle, preserving high details."
-                    break;
-                case "6":
-                    //Right Three-Quarter View
-                    final_prompt = "Change the person's pose to a right three-quarter view, **strongly emphasizing the head turn towards their right**. Accurately maintain the original facial identity and characteristics from this new angle, preserving high details."
-                    break;
-                case "7":
-                    //Left Profile View
-                    final_prompt = "Change the person's pose to a left profile view, **turning their head decisively towards their left side**. Accurately maintain the original facial identity and characteristics as seen from the side, preserving high details."
-                    break;
-                case "8":
                     //Right Profile View
-                    final_prompt = "Change the person's pose to a right profile view, **turning their head decisively towards their right side**. Accurately maintain the original facial identity and characteristics as seen from the side, preserving high details."
+                    final_prompt = "Generate a photorealistic image reorienting the person to a complete right profile view (90 degrees, with their right side facing the camera). The profile must be precise and definitive. CRITICAL REQUIREMENT: Maintain 100% accuracy in reconstructing their original facial identity, unique proportions, and all defining characteristics from this side perspective. Ensure realistic rendering of typically profile-visible features like the nose bridge, jawline, and ear, while preserving their exact facial structure. The result must appear as if the photograph was actually taken directly from their right side, with perfect lighting consistency and detail preservation.";
                     break;
-
             }
+
 
             // Log request details (avoid logging file buffer in production for large files)
             console.log('--- New Generation Request ---');

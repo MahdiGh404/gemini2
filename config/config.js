@@ -6,7 +6,8 @@ module.exports = {
     port: process.env.PORT || 3010,
 
     // Google AI Studio API Key - MUST be set in .env
-    googleAiApiKey: process.env.GOOGLE_AI_API_KEY,
+    googleAiApiKey1: process.env.GOOGLE_AI_API_KEY1,
+    googleAiApiKey2: process.env.GOOGLE_AI_API_KEY2,
 
     // Gemini Model Name
     // Use a model capable of multimodal input (text/image) and potentially image generation.

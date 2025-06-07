@@ -7,7 +7,7 @@ const path = require('path'); // Needed for serving static HTML
 
 // --- Critical Check: API Key ---
 // Exit immediately if the essential API key is missing.
-if (!config.googleAiApiKey) {
+if (!config.googleAiApiKey1) {
     console.error('*****************************************************');
     console.error('FATAL ERROR: GOOGLE_AI_API_KEY is not set.');
     console.error('Please create a .env file with your API key.');
